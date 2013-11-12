@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.1.0
+# What it is: pysieve.py version 0.2.0
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -37,7 +37,7 @@ import logging
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Created by Youcef Lemsafer (Nov 2013).' )
@@ -68,8 +68,8 @@ group.add_argument( '-a', '--algebraic', help = 'instructs that the sieving'
 group.add_argument( '-r', '--rational', help = 'instructs that the sieving'
                             + ' is to be done on the rational side'
                             , action='store_true' )
-cmd_line_parser.add_argument( '-s', '--unique-name', help = 
-                      'unique name used for output file name and temporary' 
+cmd_line_parser.add_argument( '-s', '--unique-name', help =
+                      'unique name used for output file name and temporary'
                     + ' file names', required = True)
 cmd_line_parser.add_argument( '-l', '--lattice-siever'
                     , help = 'lattice siever to use (e.g. lasieve4I14e)'
@@ -104,6 +104,7 @@ class SievingParameters:
         self.q_length = q_length
         self.sieve_type = sieve_type
         self.poly = poly
+        self.poly_file = unique_name + '.poly.t' + str(id)
         self.id = id
         self.output_name = unique_name + '_' + str(q_start) \
                                 + '_' + str(q_length) + '.out'
@@ -114,16 +115,17 @@ class SievingParameters:
 # ****************************************************************************
 def run_siever(sieving_parameters):
     sp = sieving_parameters
+    shutil.copyfile(sp.poly, sp.poly_file)
     cmd = sp.executable + ' -k -v -o ' + sp.output_name \
             + ' -n' + str(sp.id) + ' -f ' + str(sp.q_start) \
             + ' -c ' + str(sp.q_length) \
             + ' -' + sp.sieve_type \
-            + ' -R ' + sp.poly
+            + ' -R ' + sp.poly_file
     proc = subprocess.Popen(cmd)
     logger.debug( '[pid:' + str(proc.pid).rjust(5) + '] ' + cmd )
     proc.wait()
     sp.return_code = proc.returncode
-    logger.debug( 'Process [pid:' + str(proc.pid).rjust(5) + '] ended with'
+    logger.debug( 'Process [pid:' + str(proc.pid).rjust(5) + '] exited with'
             + ' return code ' + str(sp.return_code) )
 
 
@@ -155,7 +157,7 @@ def append_files(sievers, output_file_name):
     relations_count = 0
     with open( output_file_name, 'ab' ) as output_file:
         for s in sievers:
-            logger.debug( 'Appending file ' + s.parameters.output_name 
+            logger.debug( 'Appending file ' + s.parameters.output_name
                     + ' to file ' + output_file_name )
             with open( s.parameters.output_name, 'rb' ) as relations_file:
                 for line in relations_file:
@@ -173,7 +175,7 @@ def delete_files(sievers):
             # failure to remove file should not cause problem, just report it
             os.remove(s.parameters.output_name)
         except OSError:
-            logger.warning( 'Failed to delete file `' 
+            logger.warning( 'Failed to delete file `'
                             + s.parameters.output_name + '\'.'
                             )
 
@@ -304,6 +306,7 @@ if not shutil.which(latsieve):
     die( 'Lattice siever ' + latsieve + ' could not be'
          + ' found, did you forget to update PATH?' )
 # Some logging
+logger.debug( '' )
 logger.debug( NAME + ' ' + VERSION + ' invoked with following command line:' )
 logger.debug( get_command_line() )
 # Do run...
