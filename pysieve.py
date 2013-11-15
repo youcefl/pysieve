@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.2.0
+# What it is: pysieve.py version 0.3.0
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -37,7 +37,7 @@ import logging
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Created by Youcef Lemsafer (Nov 2013).' )
@@ -204,14 +204,16 @@ def sieve(q_a, q_b, max_threads, siever_exe):
     id = 0
     sieve_type = 'a' if arguments.algebraic else 'r'
     while(q_x < q_b):
-        q_y = min(q_x + delta, q_b)
+        q_y = q_x + delta
+        if(q_y + delta >= q_b):
+            q_y = q_y + (q_b - q_a) % delta
         params = SievingParameters( siever_exe, arguments.unique_name
                                   , q_x, q_y - q_x, sieve_type
                                   , arguments.poly, id
                                   )
         sievers.append(Siever(params))
         id += 1
-        q_x += delta
+        q_x = q_y
 
     for s in sievers:
         s.start()
@@ -256,19 +258,23 @@ def main_sieve(q0, length, siever_exe):
                         + str(q_r))
         return
     elif( q_r != 0 ):
-        logger.info('Resuming at q=' + str(q_r))
+        logger.info('Resuming at q=' + str(q_r) + '.')
         q0 = q_r
 
     overall_rel = 0
     s = arguments.saving_delta
-    q = q0
-    while(q < q0 + length):
-        overall_rel += sieve( q, min( q + s, q0 + length)
+    q_x = q0
+    q_end = q0 + length
+    while(q_x < q_end):
+        q_y = q_x + s
+        if(q_y + s >= q_end):
+            q_y = q_y + length % s
+        overall_rel += sieve( q_x, q_y
                             , arguments.threads
                             , siever_exe
                             )
         logger.info( 'Overall relations found: ' + str(overall_rel) )
-        q += s
+        q_x = q_y
 
 # ****************************************************************************
 # Returns the command line used for running this script
@@ -291,7 +297,7 @@ log_level = logging.DEBUG if arguments.verbose else logging.INFO
 console_handler = logging.StreamHandler()
 console_handler.setLevel(log_level)
 console_handler.setFormatter(logging.Formatter('|-> %(message)s'))
-file_handler = logging.FileHandler('pysieve.log')
+file_handler = logging.FileHandler(arguments.unique_name + '.log')
 file_handler.setFormatter(logging.Formatter(
                             '|-> %(asctime)-15s | %(message)s'))
 # Always use DEBUG level when logging to file
@@ -307,8 +313,12 @@ if not shutil.which(latsieve):
          + ' found, did you forget to update PATH?' )
 # Some logging
 logger.debug( '' )
-logger.debug( NAME + ' ' + VERSION + ' invoked with following command line:' )
-logger.debug( get_command_line() )
+logger.debug( '' )
+logger.debug( NAME + ' version ' + VERSION )
+logger.debug( '' )
+logger.debug( 'command line:' )
+logger.debug( '  ' + get_command_line() )
+logger.debug( '' )
 # Do run...
 main_sieve(arguments.f, arguments.c, latsieve)
 
