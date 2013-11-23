@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.3.0
+# What it is: pysieve.py version 0.4.1
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -32,12 +32,14 @@ import shutil
 import os
 import sys
 import logging
+import time
+import datetime
 
 
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.3.0'
+VERSION = '0.4.1'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Created by Youcef Lemsafer (Nov 2013).' )
@@ -126,7 +128,7 @@ def run_siever(sieving_parameters):
     proc.wait()
     sp.return_code = proc.returncode
     logger.debug( 'Process [pid:' + str(proc.pid).rjust(5) + '] exited with'
-            + ' return code ' + str(sp.return_code) )
+            + ' code ' + str(sp.return_code) )
 
 
 # ****************************************************************************
@@ -196,8 +198,12 @@ def is_existing_file(name):
 # Sieves range [q_a, q_b)
 # ****************************************************************************
 def sieve(q_a, q_b, max_threads, siever_exe):
-    logger.info('Sieving range [' + str(q_a) + ', ' + str(q_b) + ') using '
-            + str(max_threads) + ' threads.')
+    logger.info(
+        'Lattice sieving {0:s} q from {1:d} to {2:d} using {3:d} thread(s).'
+            .format( 'algebraic' if arguments.algebraic else 'rational'
+                   , q_a, q_b, max_threads
+                   )
+                )
     sievers = []
     delta = (q_b - q_a) // max_threads
     q_x = q_a
@@ -220,7 +226,7 @@ def sieve(q_a, q_b, max_threads, siever_exe):
     for s in sievers:
         s.wait()
 
-    relations_count = append_files(sievers, arguments.unique_name + '.rel')
+    relations_count = append_files(sievers, arguments.unique_name + '.rels')
     logger.info( 'Found ' + str(relations_count) + ' relations.' )
 
     # Once a set of relation files have been appended to the output file
@@ -246,6 +252,18 @@ def get_q_from_file(file_name):
         return int(f.readline())
 
 # ****************************************************************************
+# Converts a number of seconds into a string formatted as follows:
+# %dd %dh %dm %ds
+# ****************************************************************************
+def seconds_to_dhms(seconds):
+    s = int(seconds)
+    return '{0:d}d {1:d}h {2:d}m {3:d}s'.format(
+                       s // 86400, (s % 86400) // 3600, (s % 3600) // 60
+                     , s % 60
+                     )
+
+
+# ****************************************************************************
 # Sieves from q0 to q0 + length
 # This is the main sieve function
 # ****************************************************************************
@@ -261,6 +279,7 @@ def main_sieve(q0, length, siever_exe):
         logger.info('Resuming at q=' + str(q_r) + '.')
         q0 = q_r
 
+    start_time = time.monotonic()
     overall_rel = 0
     s = arguments.saving_delta
     q_x = q0
@@ -274,7 +293,14 @@ def main_sieve(q0, length, siever_exe):
                             , siever_exe
                             )
         logger.info( 'Overall relations found: ' + str(overall_rel) )
+        elapsed_time = time.monotonic() - start_time
+        logger.info( 'Elapsed time: ' + str(int(elapsed_time)) + 's ('
+                    + str(round(elapsed_time / 86400, 3)) + ' day(s)).' )
+        if( q_y < q_end ):
+            eta = int(((q_end - q_y) / (q_y - q0)) * elapsed_time)
+            logger.info( 'ETA: ' + seconds_to_dhms(eta) )
         q_x = q_y
+
 
 # ****************************************************************************
 # Returns the command line used for running this script
