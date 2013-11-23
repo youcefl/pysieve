@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.4.1
+# What it is: pysieve.py version 0.4.2
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -39,7 +39,7 @@ import datetime
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Created by Youcef Lemsafer (Nov 2013).' )
@@ -268,6 +268,7 @@ def seconds_to_dhms(seconds):
 # This is the main sieve function
 # ****************************************************************************
 def main_sieve(q0, length, siever_exe):
+    q_end = q0 + length
     # Read resume file to see whether we have to directly jump to a larger
     # value of q0
     q_r = get_q_from_file(arguments.unique_name + '.resume')
@@ -283,7 +284,6 @@ def main_sieve(q0, length, siever_exe):
     overall_rel = 0
     s = arguments.saving_delta
     q_x = q0
-    q_end = q0 + length
     while(q_x < q_end):
         q_y = q_x + s
         if(q_y + s >= q_end):
