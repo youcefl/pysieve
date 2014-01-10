@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.4.2
+# What it is: pysieve.py version 0.5.0
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -39,7 +39,7 @@ import datetime
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.4.2'
+VERSION = '0.5.0'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Created by Youcef Lemsafer (Nov 2013).' )
@@ -123,7 +123,8 @@ def run_siever(sieving_parameters):
             + ' -c ' + str(sp.q_length) \
             + ' -' + sp.sieve_type \
             + ' -R ' + sp.poly_file
-    proc = subprocess.Popen(cmd)
+    # IDLE_PRIORITY_CLASS = 0x00000040
+    proc = subprocess.Popen(cmd, creationflags = 0x40)
     logger.debug( '[pid:' + str(proc.pid).rjust(5) + '] ' + cmd )
     proc.wait()
     sp.return_code = proc.returncode
