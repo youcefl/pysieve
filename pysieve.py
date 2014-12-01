@@ -39,10 +39,10 @@ import datetime
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.5.0'
+VERSION = '0.6.0'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
-print( 'Created by Youcef Lemsafer (Nov 2013).' )
+print( 'Copyright Youcef Lemsafer (Nov 2013 - Dec 2014).' )
 
 # ****************************************************************************
 # ****************************************************************************
@@ -106,7 +106,6 @@ class SievingParameters:
         self.q_length = q_length
         self.sieve_type = sieve_type
         self.poly = poly
-        self.poly_file = unique_name + '.poly.t' + str(id)
         self.id = id
         self.output_name = unique_name + '_' + str(q_start) \
                                 + '_' + str(q_length) + '.out'
@@ -117,12 +116,11 @@ class SievingParameters:
 # ****************************************************************************
 def run_siever(sieving_parameters):
     sp = sieving_parameters
-    shutil.copyfile(sp.poly, sp.poly_file)
     cmd = sp.executable + ' -k -v -o ' + sp.output_name \
             + ' -n' + str(sp.id) + ' -f ' + str(sp.q_start) \
             + ' -c ' + str(sp.q_length) \
             + ' -' + sp.sieve_type \
-            + ' -R ' + sp.poly_file
+            + ' -R ' + sp.poly
     # IDLE_PRIORITY_CLASS = 0x00000040
     proc = subprocess.Popen(cmd, creationflags = 0x40)
     logger.debug( '[pid:' + str(proc.pid).rjust(5) + '] ' + cmd )
@@ -193,6 +191,38 @@ def is_existing_file(name):
             return True
     except IOError:
         return False
+
+# ****************************************************************************
+# Converts an array of string to a string
+# ****************************************************************************
+def string_array_to_string(str_array):
+    str = ''
+    is_first = True
+    sep = ''
+    for s in str_array:
+        str += sep
+        str += s
+        if( not sep ):
+            sep = ' '
+    return str
+
+
+# ****************************************************************************
+# Generates algebraic factor base file (must be called before starting sieving
+# subprocesses).
+# ****************************************************************************
+def generate_factor_base(siever_exe, poly_file):
+    logger.info('Generating algebraic factor base...')
+    afb_cmd = [siever_exe, '-v', '-F', '-b', poly_file, '-k', '-c', '0']
+    afb_proc = subprocess.Popen(afb_cmd)
+    logger.debug( '[pid:' + str(afb_proc.pid) + '] ' + string_array_to_string(afb_cmd) )
+    afb_proc.wait()
+    logger.debug('Process id ' + str(afb_proc.pid) + ' exited with code ' + str(afb_proc.returncode))
+    if( afb_proc.returncode != 0 ):
+        logger.error('Error while generating algebraic factor base, ' + siever_exe + ' exited with code ' + str(afb_proc.returncode))
+        return 0
+    logger.info('Algebraic factor base written to file `' + poly_file + '.afb.0\'')
+    return 1
 
 
 # ****************************************************************************
@@ -280,6 +310,9 @@ def main_sieve(q0, length, siever_exe):
     elif( q_r != 0 ):
         logger.info('Resuming at q=' + str(q_r) + '.')
         q0 = q_r
+
+    if( generate_factor_base(siever_exe, arguments.poly) == 0 ):
+        return
 
     start_time = time.monotonic()
     overall_rel = 0
