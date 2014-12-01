@@ -39,7 +39,7 @@ import datetime
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.6.0'
+VERSION = '0.6.1'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Copyright Youcef Lemsafer (Nov 2013 - Dec 2014).' )
@@ -70,14 +70,14 @@ group.add_argument( '-a', '--algebraic', help = 'instructs that the sieving'
 group.add_argument( '-r', '--rational', help = 'instructs that the sieving'
                             + ' is to be done on the rational side'
                             , action='store_true' )
-cmd_line_parser.add_argument( '-s', '--unique-name', help =
+cmd_line_parser.add_argument( '-s', '--unique_name', help =
                       'unique name used for output file name and temporary'
                     + ' file names', required = True)
-cmd_line_parser.add_argument( '-l', '--lattice-siever'
+cmd_line_parser.add_argument( '-l', '--lattice_siever'
                     , help = 'lattice siever to use (e.g. lasieve4I14e)'
                     , required = True
                     )
-cmd_line_parser.add_argument( '-d', '--saving-delta'
+cmd_line_parser.add_argument( '-d', '--saving_delta'
                 , help = 'size of range to processed before a saving occurs.'
                 , type = int
                 , default = 10000
