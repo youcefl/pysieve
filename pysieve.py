@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.7.0
+# What it is: pysieve.py version 0.7.1
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -40,7 +40,7 @@ import gzip
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Copyright Youcef Lemsafer (Nov 2013 - Mar 2015).' )
@@ -171,15 +171,17 @@ def append_files(sievers, output_file_name):
 # ****************************************************************************
 # Deletes the files produced by a set of sievers
 # ****************************************************************************
+def delete_file(name):
+    try:
+        # failure to remove file should not cause problem, just report it
+        os.remove(name)
+    except OSError:
+        logger.warning( 'Failed to delete file `' + name + '\'.' )
+
 def delete_files(sievers):
     for s in sievers:
-        try:
-            # failure to remove file should not cause problem, just report it
-            os.remove(s.parameters.output_name)
-        except OSError:
-            logger.warning( 'Failed to delete file `'
-                            + s.parameters.output_name + '\'.'
-                            )
+        delete_file(s.parameters.output_name)
+
 
 
 # ****************************************************************************
@@ -229,7 +231,7 @@ def generate_factor_base(siever_exe, poly_file):
 # ****************************************************************************
 # Sieves range [q_a, q_b)
 # ****************************************************************************
-def sieve(q_a, q_b, max_threads, siever_exe):
+def sieve(q_a, q_b, max_threads, siever_exe, sieve_info):
     logger.info(
         'Lattice sieving {0:s} q from {1:d} to {2:d} using {3:d} thread(s).'
             .format( 'algebraic' if arguments.algebraic else 'rational'
@@ -253,13 +255,20 @@ def sieve(q_a, q_b, max_threads, siever_exe):
         id += 1
         q_x = q_y
 
+    start_time = time.monotonic()
+
     for s in sievers:
         s.start()
     for s in sievers:
         s.wait()
 
+    end_time = time.monotonic()
+
     relations_count = append_files(sievers, arguments.unique_name + '.dat.gz')
     logger.info( 'Found ' + str(relations_count) + ' relations.' )
+
+    sieve_info.overall_relations += relations_count
+    sieve_info.thread_hour += ( (end_time - start_time) / 3600.0 ) * max_threads
 
     # Once a set of relation files have been appended to the output file
     # we get rid of them
@@ -270,18 +279,34 @@ def sieve(q_a, q_b, max_threads, siever_exe):
     if is_existing_file(resume_file_name):
         os.replace(resume_file_name, old_resume_file_name)
     with open(resume_file_name, 'w') as resume_file:
-        resume_file.write(str(q_b))
+        resume_file.write(str(q_b) + '\n')
+        resume_file.write(str(sieve_info.overall_relations) + '\n')
+        resume_file.write(str(sieve_info.thread_hour) + '\n')
 
-    return relations_count
+
+
+# ****************************************************************************
+# Class holding overall relations count and number of thread.hours
+# useful when resuming a sieve job.
+# ****************************************************************************
+class SieveInfo:
+    def __init__(self, q_start, overall_relations, thread_hour):
+        self.q_start = q_start
+        self.overall_relations = overall_relations
+        self.thread_hour = thread_hour
+
 
 # ****************************************************************************
 # Reads q value from resume file
 # ****************************************************************************
-def get_q_from_file(file_name):
+def read_resume_file(file_name):
     if not is_existing_file(file_name):
-        return 0
+        return SieveInfo(0, 0, 0.0)
     with open(file_name, 'r') as f:
-        return int(f.readline())
+        q_start = int(f.readline())
+        overall_rels = int(f.readline())
+        thread_hour = float(f.readline())
+        return SieveInfo(q_start, overall_rels, thread_hour)
 
 # ****************************************************************************
 # Converts a number of seconds into a string formatted as follows:
@@ -300,34 +325,39 @@ def seconds_to_dhms(seconds):
 # This is the main sieve function
 # ****************************************************************************
 def main_sieve(q0, length, siever_exe):
+    resume_file = arguments.unique_name + '.resume'
     q_end = q0 + length
     # Read resume file to see whether we have to directly jump to a larger
     # value of q0
-    q_r = get_q_from_file(arguments.unique_name + '.resume')
+    sieve_info = read_resume_file(resume_file)
+    q_r = sieve_info.q_start
     if( q_r >= q0 + length ):
         logger.info('No more work to do, a previous run sieved to q='
                         + str(q_r))
         return
     elif( q_r != 0 ):
-        logger.info('Resuming at q=' + str(q_r) + '.')
+        logger.info('Resuming at q=' + str(q_r) + ', previous run(s) gathered '
+                     + str(sieve_info.overall_relations) + ' relations in '
+                     + str(round(sieve_info.thread_hour, 3)) + ' thread.hour.')
         q0 = q_r
 
     if( generate_factor_base(siever_exe, arguments.poly) == 0 ):
         return
 
     start_time = time.monotonic()
-    overall_rel = 0
+    overall_rel = sieve_info.overall_relations
     s = arguments.saving_delta
     q_x = q0
     while(q_x < q_end):
         q_y = q_x + s
         if(q_y + s >= q_end):
             q_y = q_y + length % s
-        overall_rel += sieve( q_x, q_y
-                            , arguments.threads
-                            , siever_exe
-                            )
-        logger.info( 'Overall relations found: ' + str(overall_rel) )
+        sieve( q_x, q_y
+             , arguments.threads
+             , siever_exe
+             , sieve_info
+             )
+        logger.info( 'Overall relations found: ' + str(sieve_info.overall_relations) )
         elapsed_time = time.monotonic() - start_time
         logger.info( 'Elapsed time: ' + str(int(elapsed_time)) + 's ('
                     + str(round(elapsed_time / 86400, 3)) + ' day(s)).' )
@@ -335,6 +365,16 @@ def main_sieve(q0, length, siever_exe):
             eta = int(((q_end - q_y) / (q_y - q0)) * elapsed_time)
             logger.info( 'ETA: ' + seconds_to_dhms(eta) )
         q_x = q_y
+
+    logger.info( str(round(sieve_info.thread_hour, 3))
+               + ' thread.hour of sieving produced '
+               + str(sieve_info.overall_relations) + ' relations.' )
+
+    # Once everything is finished we remove the resume files if any
+    if( is_existing_file(resume_file) ):
+        delete_file(resume_file)
+    if( is_existing_file(resume_file + '.old') ):
+        delete_file(resume_file + '.old')
 
 
 # ****************************************************************************
