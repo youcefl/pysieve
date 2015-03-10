@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.5.0
+# What it is: pysieve.py version 0.7.0
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -34,15 +34,16 @@ import sys
 import logging
 import time
 import datetime
+import gzip
 
 
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.6.1'
+VERSION = '0.7.0'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
-print( 'Copyright Youcef Lemsafer (Nov 2013 - Dec 2014).' )
+print( 'Copyright Youcef Lemsafer (Nov 2013 - Mar 2015).' )
 
 # ****************************************************************************
 # ****************************************************************************
@@ -156,7 +157,7 @@ class Siever:
 # ****************************************************************************
 def append_files(sievers, output_file_name):
     relations_count = 0
-    with open( output_file_name, 'ab' ) as output_file:
+    with gzip.open( output_file_name, 'ab' ) as output_file:
         for s in sievers:
             logger.debug( 'Appending file ' + s.parameters.output_name
                     + ' to file ' + output_file_name )
@@ -257,7 +258,7 @@ def sieve(q_a, q_b, max_threads, siever_exe):
     for s in sievers:
         s.wait()
 
-    relations_count = append_files(sievers, arguments.unique_name + '.rels')
+    relations_count = append_files(sievers, arguments.unique_name + '.dat.gz')
     logger.info( 'Found ' + str(relations_count) + ' relations.' )
 
     # Once a set of relation files have been appended to the output file
