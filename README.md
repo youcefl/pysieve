@@ -1,5 +1,5 @@
-pysieve.py
-==========
+pysieve
+=======
 A Python wrapper over GGNFS sievers
 
 pysieve.py is an easily deployed, self sufficient Python script used
