@@ -79,7 +79,7 @@ cmd_line_parser.add_argument( '-l', '--lattice_siever'
                     , required = True
                     )
 cmd_line_parser.add_argument( '-d', '--saving_delta'
-                , help = 'size of range to processed before a saving occurs.'
+                , help = 'size of range to process before a saving occurs.'
                 , type = int
                 , default = 10000
                 )
