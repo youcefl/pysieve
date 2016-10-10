@@ -21,7 +21,7 @@
 # Creation date: 2013.11.11
 # Created by: Youcef Lemsafer
 # Authors: Youcef Lemsafer
-# What it is: pysieve.py version 0.7.1
+# What it is: pysieve.py version 0.7.2
 # A Python driver for my sieving work cause factoring big numbers is a lot
 # of fun.
 # ****************************************************************************
@@ -40,7 +40,7 @@ import gzip
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
 print( 'Copyright Youcef Lemsafer (Nov 2013 - Mar 2015).' )
@@ -78,6 +78,12 @@ cmd_line_parser.add_argument( '-l', '--lattice_siever'
                     , help = 'lattice siever to use (e.g. lasieve4I14e)'
                     , required = True
                     )
+cmd_line_parser.add_argument( '-J', '--bits_second_dimension'
+                    , help = 'Number of bits for second dimension of'
+                    +' sieve region'
+                    , type = int
+                    , required = False
+                    )
 cmd_line_parser.add_argument( '-d', '--saving_delta'
                 , help = 'size of range to process before a saving occurs.'
                 , type = int
@@ -100,7 +106,7 @@ def die(msg):
 # ****************************************************************************
 class SievingParameters:
     def __init__(self, siever_exe, unique_name, q_start, q_length
-                        , sieve_type, poly, id):
+                        , sieve_type, poly, id, j = 0):
         self.executable = siever_exe
         self.unique_name = unique_name
         self.q_start = q_start
@@ -108,6 +114,7 @@ class SievingParameters:
         self.sieve_type = sieve_type
         self.poly = poly
         self.id = id
+        self.j = j
         self.output_name = unique_name + '_' + str(q_start) \
                                 + '_' + str(q_length) + '.out'
         self.return_code = -1
@@ -117,7 +124,8 @@ class SievingParameters:
 # ****************************************************************************
 def run_siever(sieving_parameters):
     sp = sieving_parameters
-    cmd = sp.executable + ' -k -v -o ' + sp.output_name \
+    cmd = sp.executable + (' -J {0:d}'.format(sp.j) if (sp.j != 0) else '') \
+            + ' -k -v -o ' + sp.output_name \
             + ' -n' + str(sp.id) + ' -f ' + str(sp.q_start) \
             + ' -c ' + str(sp.q_length) \
             + ' -' + sp.sieve_type \
@@ -243,6 +251,7 @@ def sieve(q_a, q_b, max_threads, siever_exe, sieve_info):
     q_x = q_a
     id = 0
     sieve_type = 'a' if arguments.algebraic else 'r'
+    j = arguments.bits_second_dimension if (arguments.bits_second_dimension != None) else 0
     while(q_x < q_b):
         q_y = q_x + delta
         if(q_y + delta >= q_b):
@@ -250,6 +259,7 @@ def sieve(q_a, q_b, max_threads, siever_exe, sieve_info):
         params = SievingParameters( siever_exe, arguments.unique_name
                                   , q_x, q_y - q_x, sieve_type
                                   , arguments.poly, id
+                                  , j
                                   )
         sievers.append(Siever(params))
         id += 1
