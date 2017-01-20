@@ -40,10 +40,10 @@ import gzip
 # ****************************************************************************
 # Output some informations
 # ****************************************************************************
-VERSION = '0.7.2'
+VERSION = '0.7.3'
 NAME = 'pysieve.py'
 print( NAME + ' version ' + VERSION )
-print( 'Copyright Youcef Lemsafer (Nov 2013 - Mar 2015).' )
+print( 'Copyright Youcef Lemsafer (Nov 2013 - Jan 2017).' )
 
 # ****************************************************************************
 # ****************************************************************************
@@ -124,15 +124,20 @@ class SievingParameters:
 # ****************************************************************************
 def run_siever(sieving_parameters):
     sp = sieving_parameters
-    cmd = sp.executable + (' -J {0:d}'.format(sp.j) if (sp.j != 0) else '') \
-            + ' -k -v -o ' + sp.output_name \
-            + ' -n' + str(sp.id) + ' -f ' + str(sp.q_start) \
-            + ' -c ' + str(sp.q_length) \
-            + ' -' + sp.sieve_type \
-            + ' -R ' + sp.poly
-    # IDLE_PRIORITY_CLASS = 0x00000040
-    proc = subprocess.Popen(cmd, creationflags = 0x40)
-    logger.debug( '[pid:' + str(proc.pid).rjust(5) + '] ' + cmd )
+    cmd = [sp.executable]
+    if (sp.j != 0):
+        cmd += ['-J', '{0:d}'.format(sp.j)]
+    cmd += ['-k', '-v', '-o', sp.output_name
+           , '-n' + str(sp.id), '-f', str(sp.q_start)
+           , '-c' , str(sp.q_length)
+           , '-' + sp.sieve_type
+           , '-R', sp.poly]
+    if os.name == 'nt':
+        # IDLE_PRIORITY_CLASS = 0x00000040
+        proc = subprocess.Popen(cmd, creationflags = 0x40)
+    else:
+        proc = subprocess.Popen(cmd, preexec_fn = lambda : os.nice(20))
+    logger.debug( '[pid:' + str(proc.pid).rjust(5) + '] ' + str(cmd) )
     proc.wait()
     sp.return_code = proc.returncode
     logger.debug( 'Process [pid:' + str(proc.pid).rjust(5) + '] exited with'
